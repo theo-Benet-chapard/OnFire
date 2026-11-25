@@ -1,7 +1,7 @@
 import Foundation
 
 struct Ville : Decodable {
-    let lat: String
-    let lon: String
-    let display_name: String
+    var lat: String
+    var lon: String
+    var name: String
 }

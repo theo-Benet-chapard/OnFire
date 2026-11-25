@@ -30,7 +30,7 @@ struct PageChargement: View {
                         try? await Task.sleep(for: .seconds(5))
                         navigate = true
                     }.navigationDestination(isPresented: $navigate){
-                        RechauffementVille().navigationBarBackButtonHidden(true)
+                        MainTabView().navigationBarBackButtonHidden(true)
                     }
         }
     }
