@@ -120,8 +120,9 @@ struct RechauffementVille: View {
     @State private var dif: Double = 0.0
     
     // Variable pour la localisation et Maps
-    private let locationManager = Location()
+    @StateObject private var locationManager = Location()
     @State private var cameraPosition: MapCameraPosition
+    @State private var currentCamera: MapCamera?
     
     // Variables pour les Graphs
     @State private var progress = 0.0
@@ -144,9 +145,9 @@ struct RechauffementVille: View {
 
     var body: some View {
         VStack {
-            Text("Réchauffement climatique").font(.title).bold()
+            Text("De combien votre ville s'est-elle réchauffée ?").font(.title).bold()
             
-            Text("A \(ville.name) a une différence de \(String(format: "%.2f", dif)) depuis 1981")
+            Text("A \(ville.name), il y a une différence de \(String(format: "%.2f", dif)) depuis 1981")
             
             Picker("Niveau", selection: $select) {
                 ForEach(Visuel.allCases) { visuel in
@@ -181,9 +182,46 @@ struct RechauffementVille: View {
                         Marker(ville.name, coordinate: CLLocationCoordinate2D(latitude: Double(ville.lat) ?? lat_def, longitude: Double(ville.lon) ?? lon_def))
                             .tint(.red)
                     }
+                    // enlevé le MapUserLocationButton pour utiliser les buttons personalisés
                     .mapControls {
-                        MapUserLocationButton()
                         MapCompass()
+                    }
+                    .onMapCameraChange { context in
+                        currentCamera = context.camera
+                    }
+                    // overlay: buttons pour recentrer la map sur l'emplacement choisi
+                    .overlay(alignment: .bottomLeading) {
+                        VStack(spacing: 0) {
+                            Button { centerOnUser() } label: {
+                                Image(systemName: "location.fill")
+                                    .frame(width: 44, height: 44)
+                            }
+                            Divider().frame(width: 44)
+                            Button { MajCamera() } label: {
+                                Image(systemName: "mappin.circle.fill")
+                                    .frame(width: 44, height: 44)
+                            }
+                        }
+                        .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 10))
+                        .shadow(radius: 2)
+                        .padding()
+                    }
+                    // overlay: buttons pour zoomer et dezoomer
+                    .overlay(alignment: .bottomTrailing) {
+                        VStack(spacing: 0) {
+                            Button { zoom(factor: 0.5) } label: {
+                                Image(systemName: "plus")
+                                    .frame(width: 44, height: 44)
+                            }
+                            Divider().frame(width: 44)
+                            Button { zoom(factor: 2) } label: {
+                                Image(systemName: "minus")
+                                    .frame(width: 44, height: 44)
+                            }
+                        }
+                        .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 10))
+                        .shadow(radius: 2)
+                        .padding()
                     }
                     .simultaneousGesture(
                         LongPressGesture(minimumDuration: 0.8)
@@ -211,6 +249,8 @@ struct RechauffementVille: View {
                             }
                     )
                 }
+                
+                                
             } else {
                 GraphView(temp: temp)
             }
@@ -253,6 +293,23 @@ struct RechauffementVille: View {
                     MajCamera()
                 }
             }
+        }
+    }
+    
+    // fonction pour recentrer la carte sur le user
+    // a verifier
+    private func centerOnUser() {
+        withAnimation(.easeInOut(duration: 0.5)) {
+            cameraPosition = .userLocation(fallback: .automatic)
+        }
+    }
+    
+    // fonction pour zoomer ou dezoomer la carte
+    private func zoom(factor: Double) {
+        guard var camera = currentCamera else { return }
+        camera.distance = min(max(camera.distance * factor, 200), 40_000_000)
+        withAnimation(.easeInOut(duration: 0.3)) {
+            cameraPosition = .camera(camera)
         }
     }
     
