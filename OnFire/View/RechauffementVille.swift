@@ -145,9 +145,12 @@ struct RechauffementVille: View {
 
     var body: some View {
         VStack {
-            Text("De combien votre ville s'est-elle réchauffée ?").font(.title).bold()
+            Text("De combien votre ville s'est-elle réchauffée ?")
+                .font(.title)
+                .bold()
+                .multilineTextAlignment(.center)
             
-            Text("A \(ville.name), il y a une différence de \(String(format: "%.2f", dif)) depuis 1981")
+            Text("A \(ville.name), il y a une différence de \(dif.formatted(.number.sign(strategy: .always()).precision(.fractionLength(2)))) degrés depuis 1981")
             
             Picker("Niveau", selection: $select) {
                 ForEach(Visuel.allCases) { visuel in
@@ -158,11 +161,14 @@ struct RechauffementVille: View {
             .padding(.horizontal)
             
             HStack {
+                // textfield pour rechercher la ville
                 TextField("Ex: Orléans", text: $searchText)
                     .textFieldStyle(.roundedBorder)
                     .textInputAutocapitalization(.words)
                     .autocorrectionDisabled()
                     .textContentType(.name)
+                    .submitLabel(.search)
+                    .onSubmit { Action() }
                 
                 Button {
                     Action()
@@ -192,13 +198,15 @@ struct RechauffementVille: View {
                     // overlay: buttons pour recentrer la map sur l'emplacement choisi
                     .overlay(alignment: .bottomLeading) {
                         VStack(spacing: 0) {
+                            // button pour recentrer a la position du user
                             Button { centerOnUser() } label: {
                                 Image(systemName: "location.fill")
                                     .frame(width: 44, height: 44)
                             }
+                            // button pour recentrer sur l'endroit recherché
                             Divider().frame(width: 44)
                             Button { MajCamera() } label: {
-                                Image(systemName: "mappin.circle.fill")
+                                Image(systemName: "mappin.and.ellipse")
                                     .frame(width: 44, height: 44)
                             }
                         }
@@ -257,6 +265,7 @@ struct RechauffementVille: View {
             
             Spacer()
         }
+        
         .overlay {
             if isLoading {
                 Color.black.opacity(0.3)
@@ -267,11 +276,12 @@ struct RechauffementVille: View {
                     .cornerRadius(12)
             }
         }
-        .task(id: searchText) {
+        .task() {
             await ChargerVille()
+            /*
             guard !searchText.isEmpty, searchText != ville.name else { return }
             
-            try? await Task.sleep(for: .milliseconds(400))
+            try? await Task.sleep(for: .milliseconds(1000))
             guard !Task.isCancelled else { return }
             
             isLoading = true
@@ -285,7 +295,9 @@ struct RechauffementVille: View {
             } catch {
                 print("Erreur recherche API : \(error)")
             }
+             */
         }
+        /*
         .onChange(of: locationManager.userLocation) { newLocation in
             if let coordinate = newLocation {
                 Task {
@@ -294,6 +306,7 @@ struct RechauffementVille: View {
                 }
             }
         }
+         */
     }
     
     // fonction pour recentrer la carte sur le user
@@ -345,6 +358,8 @@ struct RechauffementVille: View {
                 if let resultatVille = try await nominatim.getVille(ville: searchText) {
                     ville = resultatVille
                     (temp, dif) = try await nasa.getRechauffementVille(ville: ville)
+                    try? await Task.sleep(for: .milliseconds(750))
+                    guard !Task.isCancelled else { return }
                     MajCamera()
                 }
             } catch {
